@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h3 class="mb-4 fw-bold text-primary">📊 Sales Report</h3>
+
+<div class="card p-4 mb-4 shadow-sm">
+    <form action="/reports/sales" method="GET" class="row g-3">
+        <div class="col-md-2">
+            <label class="form-label fw-bold">From</label>
+            <input type="date" class="form-control" name="start_date" value="{{ start_date }}" required>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label fw-bold">To</label>
+            <input type="date" class="form-control" name="end_date" value="{{ end_date }}" required>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-bold">Item</label>
+            <select class="form-select" name="item_id">
+                <option value="all" {% if selected_item == 'all' %}selected{% endif %}>All Items</option>
+                {% for item in items %}
+                <option value="{{ item[0] }}" {% if selected_item == item[0]|string %}selected{% endif %}>{{ item[1] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-bold">Status</label>
+            <select class="form-select" name="status">
+                <option value="all" {% if selected_status == 'all' %}selected{% endif %}>All Orders</option>
+                <option value="Paid" {% if selected_status == 'Paid' %}selected{% endif %}>Cash Orders (Paid)</option>
+                <option value="Credit" {% if selected_status == 'Credit' %}selected{% endif %}>Credit Orders</option>
+            </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100 fw-bold">Filter</button>
+        </div>
+    </form>
+</div>
+
+<div class="d-flex justify-content-end mb-3">
+    <a href="/download/sales_excel?start_date={{ start_date }}&end_date={{ end_date }}&item_id={{ selected_item }}&status={{ selected_status }}" class="btn btn-success me-2 fw-bold">📥 Download Excel</a>
+    <a href="/print/sales_pdf?start_date={{ start_date }}&end_date={{ end_date }}&item_id={{ selected_item }}&status={{ selected_status }}" target="_blank" class="btn btn-danger fw-bold">📄 Download PDF</a>
+</div>
+
+<div class="card p-4 shadow-sm">
+    <table class="table table-hover align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>Date</th>
+                <th>Barcode</th>
+                <th>Customer</th>
+                <th>Item</th>
+                <th>Qty</th>
+                <th>Total</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>{{ order[9] }}</td>
+                <td>{{ order[1] }}</td>
+                <td>{{ order[2] }}</td>
+                <td>{{ order[11] }}</td>
+                <td>{{ order[5] }}</td>
+                <td class="fw-bold text-primary">{{(order[7])|format_currency }}</td>
+                <td>
+                    {% if order[10] == 'Paid' %}<span class="badge bg-success">Paid</span>
+                    {% elif order[10] == 'Returned' %}<span class="badge bg-danger">Returned</span>
+                    {% else %}<span class="badge bg-warning text-dark">Credit</span>{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="d-flex justify-content-between mt-3">
+        <a href="/reports/sales?page={{ page-1 }}&start_date={{ start_date }}&end_date={{ end_date }}&item_id={{ selected_item }}&status={{ selected_status }}" class="btn btn-sm btn-outline-secondary {{ 'disabled' if page == 1 }}">Previous</a>
+        <span class="fw-bold">Page {{ page }}</span>
+        <a href="/reports/sales?page={{ page+1 }}&start_date={{ start_date }}&end_date={{ end_date }}&item_id={{ selected_item }}&status={{ selected_status }}" class="btn btn-sm btn-outline-secondary {{ 'disabled' if orders|length < 15 }}">Next</a>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-3"><div class="card p-3 text-center bg-primary text-white fw-bold">Total Sale: Rs. {{ "%.2f"|format(total_sales) }}<br><small class="text-light">({{ total_count }} Orders)</small></div></div>
+    <div class="col-md-3"><div class="card p-3 text-center bg-success text-white fw-bold">Total Cash: Rs. {{ "%.2f"|format(total_cash) }}<br><small class="text-light">({{ cash_count }} Orders)</small></div></div>
+    <div class="col-md-3"><div class="card p-3 text-center bg-warning text-dark fw-bold">Total Credit: Rs. {{ "%.2f"|format(total_credit) }}<br><small class="text-dark">({{ credit_count }} Orders)</small></div></div>
+    <div class="col-md-3"><div class="card p-3 text-center bg-danger text-white fw-bold">Total Return: Rs. {{ "%.2f"|format(total_return) }}<br><small class="text-light">({{ return_count }} Orders)</small></div></div>
+</div>
+{% endblock %}

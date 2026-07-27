@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+    <div>
+        <h3 class="fw-bolder mb-1" style="color: #2c3e50;">🖨️ Print & Export Bills</h3>
+        <p class="text-muted fw-bold mb-0">Seamlessly generate PDF bills and Post Office Excel sheets.</p>
+    </div>
+</div>
+
+<ul class="nav nav-pills mb-4 fw-bold">
+    <li class="nav-item">
+        <a class="nav-link active shadow-sm" href="#" style="background-color: #d35400; border-radius: 10px;">📮 Postal Bills</a>
+    </li>
+    <li class="nav-item ms-2">
+        <a class="nav-link text-muted" href="#">🚚 Courier Bills (Coming Soon)</a>
+    </li>
+</ul>
+
+<div class="card p-4 shadow-sm border-0 mb-4" style="background-color: #ffffff; border-radius: 15px;">
+    <form action="/print_bills" method="GET" class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label fw-bold text-muted small"><i class="bi bi-calendar-check"></i> From Date</label>
+            <input type="date" class="form-control shadow-sm border-0 bg-light fw-bold" name="start_date" value="{{ start_date }}" required style="border-radius: 8px;">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-bold text-muted small"><i class="bi bi-calendar-check"></i> To Date</label>
+            <input type="date" class="form-control shadow-sm border-0 bg-light fw-bold" name="end_date" value="{{ end_date }}" required style="border-radius: 8px;">
+        </div>
+        <div class="col-md-4">
+            <label class="form-label fw-bold text-muted small"><i class="bi bi-box-seam"></i> Filter by Product</label>
+            <select class="form-select shadow-sm border-0 bg-light fw-bold" name="product_name" style="border-radius: 8px;">
+                <option value="All" {% if product_filter == 'All' %}selected{% endif %}>📦 All Products</option>
+                {% for item in items_list %}
+                <option value="{{ item }}" {% if product_filter == item %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-dark w-100 fw-bold shadow-sm" style="border-radius: 8px;"><i class="bi bi-funnel-fill"></i> Filter</button>
+        </div>
+    </form>
+</div>
+
+<form action="/generate_postal_bills" method="POST" target="_blank">
+    
+    <div class="card p-3 shadow-sm border-0 mb-4" style="background-color: #f8f9fa; border-radius: 15px;">
+        <div class="d-flex flex-wrap justify-content-center gap-3 align-items-center">
+            
+            <!-- Postal PDF Buttons -->
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-secondary px-3 py-2 fw-bold" style="font-size: 0.9rem; border-radius: 8px;">🖨️ Print PDF:</span>
+                <button type="submit" name="sender" value="YLS" formaction="/generate_postal_bills" class="btn btn-primary fw-bold shadow-sm px-4" style="border-radius: 30px;">
+                    YLS Print
+                </button>
+                <button type="submit" name="sender" value="UP" formaction="/generate_postal_bills" class="btn btn-danger fw-bold shadow-sm px-4" style="border-radius: 30px;">
+                    UP Print
+                </button>
+            </div>
+
+            <!-- Post Office Excel Buttons -->
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-success px-3 py-2 fw-bold" style="font-size: 0.9rem; border-radius: 8px;">📊 Post Office Excel:</span>
+                <button type="submit" name="sender" value="YLS" formaction="/generate_post_excel" class="btn btn-success fw-bold shadow-sm px-4" style="border-radius: 30px;">
+                    <i class="bi bi-file-earmark-spreadsheet"></i> YLS
+                </button>
+                <button type="submit" name="sender" value="UP" formaction="/generate_post_excel" class="btn btn-success fw-bold shadow-sm px-4" style="border-radius: 30px;">
+                    <i class="bi bi-file-earmark-spreadsheet"></i> UP
+                </button>
+            </div>
+
+            <!-- 🎯 අලුත්: Domex Courier Buttons -->
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge px-3 py-2 fw-bold" style="font-size: 0.9rem; border-radius: 8px; background-color: #f39c12; color: #fff;">🚚 Domex API:</span>
+                <button type="submit" name="sender" value="YLS" formaction="/generate_domex_bills" class="btn text-white fw-bold shadow-sm px-4" style="background-color: #e67e22; border: none; border-radius: 30px;">
+                    YLS Domex
+                </button>
+                <button type="submit" name="sender" value="UP" formaction="/generate_domex_bills" class="btn text-white fw-bold shadow-sm px-4" style="background-color: #d35400; border: none; border-radius: 30px;">
+                    UP Domex
+                </button>
+            </div>
+            
+        </div>
+    </div>
+
+    <div class="card p-4 shadow-sm border-0" style="border-radius: 15px;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bolder text-dark mb-0">Confirmed Orders List</h5>
+            <span class="text-muted small fw-bold">Select orders to process</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle border">
+                <thead class="table-light text-secondary">
+                    <tr>
+                        <th class="text-center" style="width: 5%;">
+                            <input class="form-check-input shadow-sm border-secondary" type="checkbox" id="selectAll" onclick="toggleSelectAll(this)" style="cursor: pointer;">
+                        </th>
+                        <th style="width: 15%;">Date</th>
+                        <th style="width: 25%;">Product & Size</th>
+                        <th style="width: 20%;">Customer Name</th>
+                        <th style="width: 20%;">Contacts</th>
+                        <th class="text-end" style="width: 15%;">COD Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lead in leads %}
+                    <tr>
+                        <td class="text-center">
+                            <input class="form-check-input lead-checkbox shadow-sm border-secondary" type="checkbox" name="selected_leads" value="{{ lead[0] }}" style="cursor: pointer;">
+                        </td>
+                        <td class="fw-bold text-muted small">{{ lead[1] }}</td>
+                        <td>
+                            <div class="fw-bold text-primary">{{ lead[2] }}</div>
+                            {% if lead[7] %}<span class="badge bg-light text-dark border">{{ lead[7] }}</span>{% endif %}
+                        </td>
+                        <td>
+                            <div class="fw-bold text-dark">{{ lead[3] }}</div>
+                            <div class="small text-muted text-truncate" style="max-width: 200px;" title="{{ lead[6] }}">{{ lead[6] }}</div>
+                        </td>
+                        <td>
+                            <div class="fw-bold small text-dark"><i class="bi bi-telephone-fill text-muted"></i> {{ lead[4] }}</div>
+                            {% if lead[5] %}<div class="fw-bold small text-dark"><i class="bi bi-telephone text-muted"></i> {{ lead[5] }}</div>{% endif %}
+                        </td>
+                        <td class="fw-bolder text-danger text-end">Rs. {{ lead[8] }}</td>
+                    </tr>
+                    {% endfor %}
+                    
+                    {% if not leads %}
+                    <tr><td colspan="6" class="text-center text-muted py-5 fw-bold"><div class="fs-1 mb-2">📭</div>No confirmed orders found.</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</form>
+
+<script>
+    function toggleSelectAll(source) {
+        checkboxes = document.querySelectorAll('.lead-checkbox');
+        for(var i=0; i<checkboxes.length; i++) {
+            checkboxes[i].checked = source.checked;
+        }
+    }
+</script>
+{% endblock %}
