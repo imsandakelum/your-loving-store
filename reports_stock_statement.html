@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-0" style="color: #1565c0;">🏦 Stock Statement (Ledger)</h3>
+        <p class="text-muted fw-bold">Track the exact movement of your stock, just like a bank statement.</p>
+    </div>
+</div>
+
+<div class="card p-4 shadow-sm border-0 mb-4" style="background-color: #f8f9fa; border-radius: 15px; border-left: 5px solid #1565c0 !important;">
+    <form action="/reports/stock_statement" method="GET" class="row g-3 align-items-end">
+        <div class="col-md-2">
+            <label class="form-label fw-bold text-muted small">From Date</label>
+            <input type="date" class="form-control shadow-sm border-0 fw-bold" name="start_date" value="{{ start_date }}" required style="border-radius: 8px;">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label fw-bold text-muted small">To Date</label>
+            <input type="date" class="form-control shadow-sm border-0 fw-bold" name="end_date" value="{{ end_date }}" required style="border-radius: 8px;">
+        </div>
+        <div class="col-md-4">
+            <label class="form-label fw-bold text-muted small">Select Item to View Statement</label>
+            <select class="form-select shadow-sm border-0 fw-bold border border-primary" name="item_id" required style="border-radius: 8px;">
+                <option value="" disabled {% if not selected_item %}selected{% endif %}>-- Please Select an Item --</option>
+                {% for item in items %}
+                <option value="{{ item[0] }}" {% if selected_item == item[0] %}selected{% endif %}>{{ item[1] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm" style="border-radius: 8px;"><i class="bi bi-file-earmark-text"></i> View Statement</button>
+        </div>
+    </form>
+</div>
+
+{% if selected_item %}
+<div class="card p-0 shadow-sm border-0 mb-5" style="border-radius: 15px; overflow: hidden;">
+    
+    <div class="bg-dark text-white p-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h4 class="fw-bolder mb-1">{{ item_name }}</h4>
+                <span class="text-light small">Statement Period: {{ start_date }} to {{ end_date }}</span>
+            </div>
+            <div class="text-end">
+                <span class="d-block small text-light fw-bold">Closing Available Stock</span>
+                <h2 class="fw-bolder mb-0 text-info">{{ closing_balance }} Units</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead style="background-color: #f1f3f5;">
+                <tr>
+                    <th class="py-3 px-4 text-muted">Date</th>
+                    <th class="py-3 text-muted">Transaction Details</th>
+                    <th class="py-3 text-muted">Ref. ID</th>
+                    <th class="py-3 text-center text-success">STOCK IN (+)</th>
+                    <th class="py-3 text-center text-danger">STOCK OUT (-)</th>
+                    <th class="py-3 text-end pe-4 text-dark fw-bolder">BALANCE</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="background-color: #fff9e6;">
+                    <td class="px-4 fw-bold text-muted">{{ start_date }}</td>
+                    <td class="fw-bolder text-dark" colspan="4">OPENING BALANCE <span class="text-muted small">(Brought Forward)</span></td>
+                    <td class="text-end pe-4 fw-bolder fs-5 text-dark">{{ opening_balance }}</td>
+                </tr>
+
+                {% for tx in statement_data %}
+                <tr>
+                    <td class="px-4 small text-muted fw-bold">{{ tx.date }}</td>
+                    <td class="fw-bold 
+                        {% if 'Purchase' in tx.type or 'Return' in tx.type %}text-success
+                        {% elif 'Sale' in tx.type %}text-danger{% endif %}">
+                        {{ tx.type }}
+                    </td>
+                    <td class="small text-muted fw-bold">{{ tx.ref }}</td>
+                    
+                    <td class="text-center fw-bold text-success">
+                        {% if tx.in_qty > 0 %}{{ tx.in_qty }}{% else %}-{% endif %}
+                    </td>
+                    
+                    <td class="text-center fw-bold text-danger">
+                        {% if tx.out_qty > 0 %}{{ tx.out_qty }}{% else %}-{% endif %}
+                    </td>
+                    
+                    <td class="text-end pe-4 fw-bolder text-primary" style="font-size: 1.1rem;">
+                        {{ tx.balance }}
+                    </td>
+                </tr>
+                {% endfor %}
+
+                {% if not statement_data %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">No transactions found in this period.</td>
+                </tr>
+                {% endif %}
+
+                <tr style="background-color: #e3f2fd; border-top: 2px solid #90caf9;">
+                    <td class="px-4 fw-bold text-muted">{{ end_date }}</td>
+                    <td class="fw-bolder text-primary" colspan="4">CLOSING BALANCE</td>
+                    <td class="text-end pe-4 fw-bolder fs-4 text-primary">{{ closing_balance }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

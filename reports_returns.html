@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-0" style="color: #d32f2f;">🔙 Return Report</h3>
+        <p class="text-muted fw-bold">View and filter returned orders by Return Date or Sale Date</p>
+    </div>
+</div>
+
+<div class="card p-4 shadow-sm border-0 mb-4" style="background-color: #fff9f4; border-radius: 15px; border-left: 5px solid #ff9800 !important;">
+    <form action="/reports/returns" method="GET" class="row g-3 align-items-end">
+        <div class="col-md-2">
+            <label class="form-label fw-bold text-muted small">Filter Based On</label>
+            <select class="form-select shadow-sm border-0 fw-bold" name="filter_type" style="border-radius: 8px;">
+                <option value="return_date" {% if filter_type == 'return_date' %}selected{% endif %}>Return Date</option>
+                <option value="sale_date" {% if filter_type == 'sale_date' %}selected{% endif %}>Sale Date</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label fw-bold text-muted small">From Date</label>
+            <input type="date" class="form-control shadow-sm border-0" name="start_date" value="{{ start_date }}" required style="border-radius: 8px;">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label fw-bold text-muted small">To Date</label>
+            <input type="date" class="form-control shadow-sm border-0" name="end_date" value="{{ end_date }}" required style="border-radius: 8px;">
+        </div>
+        <div class="col-md-4">
+            <label class="form-label fw-bold text-muted small">Filter by Item (භාණ්ඩය අනුව)</label>
+            <select class="form-select shadow-sm border-0 fw-bold" name="item_id" style="border-radius: 8px; color: #424242;">
+                <option value="all" {% if selected_item == 'all' %}selected{% endif %}>🟢 All Items (සියලුම භාණ්ඩ)</option>
+                {% for item in items_list %}
+                <option value="{{ item[0] }}" {% if selected_item|string == item[0]|string %}selected{% endif %}>{{ item[1] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-warning w-100 fw-bold shadow-sm" style="border-radius: 8px; color: #5d4037;"><i class="bi bi-funnel-fill"></i> Filter</button>
+        </div>
+    </form>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card p-4 shadow-sm border-0 h-100 text-center" style="background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%); border-radius: 15px;">
+            <div class="text-muted fw-bold text-uppercase mb-1" style="font-size: 0.85rem;">Total Return Orders</div>
+            <div class="fs-2 fw-bolder text-danger">{{ total_orders }}</div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card p-4 shadow-sm border-0 h-100 text-center" style="background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); border-radius: 15px;">
+            <div class="text-muted fw-bold text-uppercase mb-1" style="font-size: 0.85rem;">Total Refund Value</div>
+            <div class="fs-2 fw-bolder" style="color: #e65100;">{{ total_amount | format_currency }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card p-4 shadow-sm border-0" style="border-radius: 15px;">
+    <div class="table-responsive">
+        <table class="table table-hover table-sm align-middle text-center">
+            <thead class="table-light">
+                <tr>
+                    <th class="py-3">Return Date</th>
+                    {% if filter_type == 'sale_date' %}
+                    <th class="py-3" style="color: #d32f2f;">Sale Date</th>
+                    {% endif %}
+                    <th class="py-3">Barcode</th>
+                    <th class="text-start py-3">Item Name</th>
+                    <th class="py-3">Qty</th>
+                    <th class="py-3 text-end pe-4">Refund Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ret in returns %}
+                <tr>
+                    <td class="small text-muted fw-bold">{{ ret[4] }}</td>
+                    {% if filter_type == 'sale_date' %}
+                    <td class="small fw-bold text-danger">{{ ret[6] }}</td>
+                    {% endif %}
+                    <td class="fw-bold" style="color: #1976d2;">{{ ret[5] }}</td>
+                    <td class="fw-bold text-start text-dark">{{ ret[1] }}</td>
+                    <td><span class="badge bg-danger rounded-pill px-3 py-2 shadow-sm">{{ ret[2] }}</span></td>
+                    <td class="fw-bold text-end pe-4 text-danger">{{ ret[3] | format_currency }}</td>
+                </tr>
+                {% endfor %}
+                
+                {% if not returns %}
+                <tr>
+                    <td colspan="{% if filter_type == 'sale_date' %}6{% else %}5{% endif %}" class="text-center text-muted py-5 fw-bold">
+                        <div class="fs-1 mb-2">📭</div>No return records found.
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if returns or page > 1 %}
+    <div class="d-flex justify-content-between align-items-center mt-4 border-top pt-3">
+        <a href="/reports/returns?page={{ page-1 }}&start_date={{ start_date }}&end_date={{ end_date }}&item_id={{ selected_item }}&filter_type={{ filter_type }}" class="btn btn-sm btn-outline-secondary fw-bold px-4 {{ 'disabled' if page == 1 }}" style="border-radius: 8px;"><i class="bi bi-chevron-left"></i> Previous</a>
+        <span class="fw-bold text-muted small bg-light px-3 py-1 rounded shadow-sm border">Page {{ page }}</span>
+        <a href="/reports/returns?page={{ page+1 }}&start_date={{ start_date }}&end_date={{ end_date }}&item_id={{ selected_item }}&filter_type={{ filter_type }}" class="btn btn-sm btn-outline-secondary fw-bold px-4 {{ 'disabled' if returns|length < 15 }}" style="border-radius: 8px;">Next <i class="bi bi-chevron-right"></i></a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

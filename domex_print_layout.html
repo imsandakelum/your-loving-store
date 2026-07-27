@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Domex Waybills</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; font-family: 'Arial', sans-serif; background: #e0e0e0; }
+        * { box-sizing: border-box; }
+        
+        .a4-page {
+            width: 210mm;
+            height: 297mm;
+            background: white;
+            margin: 10px auto;
+            padding: 5mm;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            page-break-after: always;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        /* බිල් 4ක් A4 එකකට එන්න 50% width & height දාලා තියෙන්නේ */
+        .waybill {
+            width: calc(50% - 4mm);
+            height: calc(50% - 4mm);
+            margin: 2mm;
+            border: 1px solid #000;
+            padding: 10px;
+            position: relative;
+            font-size: 11px;
+        }
+        
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 2px solid #000;
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+        }
+        
+        .logo-area { width: 50%; }
+        .logo-area h2 { margin: 0; font-size: 18px; font-weight: 900; letter-spacing: 1px; color: #333; }
+        .logo-area p { margin: 2px 0 0 0; font-size: 10px; font-weight: bold; }
+        
+        .contact-area { width: 50%; text-align: right; }
+        .contact-area p { margin: 0 0 2px 0; font-size: 9px; }
+        
+        .tracking-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .pickup-branch { text-align: right; font-weight: bold; font-size: 11px; }
+        
+        .details-grid {
+            display: flex;
+            border: 1px solid #000;
+            margin-bottom: 5px;
+            height: 90px;
+        }
+        
+        .sender, .receiver {
+            width: 50%;
+            padding: 5px;
+        }
+        .sender { border-right: 1px solid #000; }
+        
+        .section-title {
+            font-weight: bold;
+            background: #000;
+            color: #fff;
+            padding: 2px 5px;
+            font-size: 10px;
+            margin: -5px -5px 5px -5px;
+            display: block;
+            text-align: center;
+        }
+        
+        .info-table { width: 100%; border-collapse: collapse; }
+        .info-table td { vertical-align: top; padding: 2px 0; font-size: 10px; }
+        .info-table td.lbl { font-weight: bold; width: 65px; }
+        
+        .package-details {
+            border: 1px solid #000;
+            padding: 5px;
+            margin-bottom: 5px;
+        }
+        
+        .pkg-content { display: flex; justify-content: space-between; }
+        .pkg-left { width: 65%; }
+        .pkg-right { width: 35%; text-align: right; }
+        
+        .cod-value {
+            text-align: center;
+            font-size: 15px;
+            font-weight: bold;
+            border: 2px solid #000;
+            padding: 5px;
+            margin-bottom: 5px;
+            background: #f9f9f9;
+        }
+        
+        .footer-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            margin-top: 15px;
+        }
+        .sign-line { border-top: 1px dashed #000; width: 120px; padding-top: 2px; text-align: center; }
+        .terms { text-align: center; font-size: 8px; margin-top: 8px; color: #444; }
+        
+        @media print {
+            body { background: none; }
+            .a4-page { margin: 0; border: none; box-shadow: none; padding: 0; }
+            .waybill { margin: 2mm; }
+        }
+    </style>
+</head>
+<body onload="setTimeout(window.print, 500)">
+
+    <!-- 🎯 අලුත්: Domex එකෙන් Order එක රිජෙක්ට් කරොත් ඒක පෙන්වන කොටස -->
+    {% if api_errors %}
+    <div style="background-color: #ffcccc; color: #cc0000; padding: 15px; margin: 10px auto; width: 210mm; border-radius: 8px; border: 1px solid #cc0000;">
+        <h3 style="margin-top:0; margin-bottom: 10px; font-size: 16px;">⚠️ සමහර Orders Domex සිස්ටම් එකට යැවීම අසාර්ථකයි!</h3>
+        <ul style="margin: 0; padding-left: 20px; font-size: 13px;">
+            {% for err in api_errors %}
+            <li style="margin-bottom: 5px;">{{ err }}</li>
+            {% endfor %}
+        </ul>
+        <p style="margin: 10px 0 0 0; font-size: 12px; font-weight: bold;">
+            කරුණාකර මේ Orders වල අඩුපාඩු නිවැරදි කරලා නැවත සිලෙක්ට් කර යවන්න. සාර්ථක වූ Orders පමණක් පහළින් ප්‍රින්ට් වේ.
+        </p>
+    </div>
+    {% endif %}
+    
+    {% for batch in bills | batch(4) %}
+    <div class="a4-page">
+        {% for bill in batch %}
+        <div class="waybill">
+            
+            <div class="header-row">
+                <div class="logo-area">
+                    <h2>zoomit</h2>
+                    <p>E-Com<br>Boralesgamuwa</p>
+                </div>
+                <div class="contact-area">
+                    <p>Email: mailus@domex.lk | Tel: 0117759759</p>
+                    <p style="margin-top: 5px;">{{ bill.date }}</p>
+                </div>
+            </div>
+            
+            <div class="tracking-row">
+                <div class="barcode">
+                    <!-- 🎯 වෙනස් කළ තැන: ID එකට කෙලින්ම tracking_no එක දැම්මා -->
+                    <svg id="barcode-{{ bill.tracking_no }}"></svg>
+                </div>
+                <div class="pickup-branch">
+                    Pickup Branch: Kegalle
+                </div>
+            </div>
+            
+            <div class="details-grid">
+                <div class="sender">
+                    <div class="section-title">SENDER DETAILS</div>
+                    <table class="info-table">
+                        <tr><td class="lbl">Name:</td><td>{{ bill.sender_name }}</td></tr>
+                        <tr><td class="lbl">Address:</td><td>{{ bill.sender_address }}</td></tr>
+                        <tr><td class="lbl">Contact No:</td><td>{{ bill.sender_phone }}</td></tr>
+                    </table>
+                </div>
+                <div class="receiver">
+                    <div class="section-title">RECEIVER DETAILS</div>
+                    <table class="info-table">
+                        <tr><td class="lbl">Name:</td><td>{{ bill.customer_name }}</td></tr>
+                        <tr><td class="lbl">Address:</td><td>{{ bill.address }}</td></tr>
+                        <tr><td class="lbl">City:</td><td>{{ bill.city }}</td></tr>
+                        <tr><td class="lbl">Contact No:</td><td>{{ bill.phone }}{% if bill.phone2 %}/{{ bill.phone2 }}{% endif %}</td></tr>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="package-details">
+                <div class="section-title">PACKAGE DETAILS</div>
+                <div class="pkg-content">
+                    <div class="pkg-left">
+                        <table class="info-table">
+                            <tr><td class="lbl">Delivery Branch:</td><td></td></tr>
+                            <tr><td class="lbl">Description:</td><td>{{ bill.product_name }} | URGENT</td></tr>
+                        </table>
+                    </div>
+                    <div class="pkg-right">
+                        <table class="info-table" style="width: auto; margin-left: auto;">
+                            <tr><td class="lbl">Weight:</td><td>0.3 kg</td></tr>
+                            <tr><td class="lbl">Pieces:</td><td>1</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="cod-value">
+                Value: Rs. {{ "{:,.2f}".format(bill.selling_price) }}
+            </div>
+            
+            <div class="footer-row">
+                <div class="sign-line">Receiver Sign</div>
+                <div class="sign-line">Date</div>
+            </div>
+            <div class="terms">Subject to terms and conditions</div>
+            
+        </div>
+        
+        <!-- 🎯 වෙනස් කළ තැන: Script එකෙත් tracking_no එක දැම්මා -->
+        <script>
+            JsBarcode("#barcode-{{ bill.tracking_no }}", "{{ bill.tracking_no }}", {
+                format: "CODE128",
+                width: 1.5,
+                height: 30,
+                displayValue: true,
+                fontSize: 12,
+                margin: 0
+            });
+        </script>
+        {% endfor %}
+    </div>
+    {% endfor %}
+    
+</body>
+
+</html>
