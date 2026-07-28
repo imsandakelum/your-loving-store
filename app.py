@@ -7,11 +7,19 @@ import time
 import requests # Meta එකට රික්වෙස්ට් යවන්න
 import hashlib  # දත්ත ආරක්ෂිතව යවන්න (Hashing)
 
-# 🎯 අලුත්: පරණ Database එක අලුත් Disk එකට කොපි කිරීම
-if not os.path.exists('/var/data/database.db'):
-    if os.path.exists('database.db'):
-        shutil.copy2('database.db', '/var/data/database.db')
-        print("✅ පරණ Database එක සාර්ථකව අලුත් Disk එකට කොපි කළා!")
+import os
+import shutil
+
+# 🎯 පරණ Database එක අලුත් Disk එකට බලෙන් කොපි කිරීම (Force Copy)
+try:
+    # Render එකේ දැනට තියෙන DB එක හිස් එකක්ද කියලා බලනවා (Size එක 50KB ට අඩු නම් ඒක හිස්)
+    if not os.path.exists('/var/data/database.db') or os.path.getsize('/var/data/database.db') < 50000:
+        # පරණ ඩේටා තියෙන එක GitHub එකේ තියෙනවා නම්, ඒක අලුත් ඩිස්ක් එකට කොපි කරනවා
+        if os.path.exists('database.db'):
+            shutil.copy2('database.db', '/var/data/database.db')
+            print("✅ පරණ Database එක සාර්ථකව අලුත් Disk එකට කොපි කළා!")
+except Exception as e:
+    print("DB Copy Error:", e)
 
 # === META CAPI CREDENTIALS ===
 META_ACCESS_TOKEN = "EAATaDxcz4B8BRz5DjkHtkeFdz4wznmP6ZAjvXZCSX9QYkHz17BLylPdOZBKbgb64b6cDDBoQY9jyFjjiaxYS3axqnOS8d3mytEZAD8jyq1uoHJNGpJxm7vwrHIquWtxZCU4aNRQiaLGQG5HwE0Ssod6Ba8rJijWNBRmzfZCuEpZBZCqceWK8xlGT0sSeZBRUaWwZDZD" # අදියර 1 න් ගත්තු Token එක
