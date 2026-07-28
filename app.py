@@ -7,6 +7,12 @@ import time
 import requests # Meta එකට රික්වෙස්ට් යවන්න
 import hashlib  # දත්ත ආරක්ෂිතව යවන්න (Hashing)
 
+# 🎯 අලුත්: පරණ Database එක අලුත් Disk එකට කොපි කිරීම
+if not os.path.exists('/var/data/database.db'):
+    if os.path.exists('database.db'):
+        shutil.copy2('database.db', '/var/data/database.db')
+        print("✅ පරණ Database එක සාර්ථකව අලුත් Disk එකට කොපි කළා!")
+
 # === META CAPI CREDENTIALS ===
 META_ACCESS_TOKEN = "EAATaDxcz4B8BRz5DjkHtkeFdz4wznmP6ZAjvXZCSX9QYkHz17BLylPdOZBKbgb64b6cDDBoQY9jyFjjiaxYS3axqnOS8d3mytEZAD8jyq1uoHJNGpJxm7vwrHIquWtxZCU4aNRQiaLGQG5HwE0Ssod6Ba8rJijWNBRmzfZCuEpZBZCqceWK8xlGT0sSeZBRUaWwZDZD" # අදියර 1 න් ගත්තු Token එක
 META_DATASET_ID = "1042370911648399"         # අදියර 1 න් ගත්තු ID එක
