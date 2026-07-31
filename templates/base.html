@@ -7,16 +7,21 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
 
-    <!-- 🚀 PWA & iOS App Support Tags -->
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#1e293b">
-    
-    <!-- iPhone Specific Meta Tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="YLS CRM">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='logo.png') }}">
+    <!-- PWA (App) Settings -->
+<link rel="manifest" href="/manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1e293b">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='logo.png') }}">
 
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/sw.js');
+    });
+  }
+</script>
+  
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
     <title>YLS CRM</title>
     
