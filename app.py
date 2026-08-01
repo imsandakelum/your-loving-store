@@ -2499,7 +2499,7 @@ def personal_expenses():
     
     return render_template('personal_expenses.html', expenses=expenses, total_amount=total_amount, 
                            start_date=start_date, end_date=end_date, 
-                           chart_labels=chart_labels, chart_values=chart_values)
+                           chart_labels=chart_labels, chart_values=chart_values, today_date=today.strftime('%Y-%m-%d'))
 
 @app.route('/delete_personal_expense/<int:exp_id>')
 def delete_personal_expense(exp_id):
