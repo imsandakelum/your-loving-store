@@ -152,6 +152,19 @@ def init_sqlite_db():
     except: pass
     try: cursor.execute("ALTER TABLE leads ADD COLUMN courier TEXT")
     except: pass
+
+    # --- අලුත්: පෞද්ගලික වියදම් සඳහා වෙනමම Table එකක් ---
+    cursor.execute('''CREATE TABLE IF NOT EXISTS personal_expenses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+        expense_date DATE NOT NULL, 
+        category TEXT NOT NULL, 
+        description TEXT, 
+        amount REAL NOT NULL
+    )''')
+    
+    # --- අලුත්: ඔයාට පමණක් ඇතුළු විය හැකි විශේෂිත User Account එක ---
+    # Username: madusanka_personal | Password: myexpenses123
+    cursor.execute("INSERT OR IGNORE INTO users (id, username, password, role) VALUES (3, 'indika', 'indi98', 'personal_only')")
     
     conn.commit()
     conn.close()
@@ -2431,6 +2444,60 @@ def service_worker():
     });
     """
     return app.response_class(sw_js, mimetype='application/javascript')
+
+@app.route('/personal', methods=['GET', 'POST'])
+def personal_expenses():
+    # 'madusanka_personal' කියන අලුත් යූසර්ට විතරක් මේකට එන්න පුළුවන්
+    if 'username' not in session or session.get('username') != 'madusanka_personal':
+        return "Access Denied! 🚫 මෙම පිටුව බැලීමට ඔබට අවසර නැත."
+        
+    conn = sqlite3.connect('/var/data/database.db')
+    cursor = conn.cursor()
+    
+    # Date Filters (පෙරනිමියෙන් මේ මාසයේ මුල සිට අද දක්වා)
+    today = date.today()
+    start_date = request.args.get('start_date', today.replace(day=1).strftime('%Y-%m-%d'))
+    end_date = request.args.get('end_date', today.strftime('%Y-%m-%d'))
+    
+    if request.method == 'POST':
+        e_date = request.form['expense_date']
+        category = request.form['category']
+        desc = request.form['description']
+        amount = float(request.form['amount'])
+        
+        cursor.execute("INSERT INTO personal_expenses (expense_date, category, description, amount) VALUES (?, ?, ?, ?)", 
+                       (e_date, category, desc, amount))
+        conn.commit()
+        return redirect(url_for('personal_expenses', start_date=start_date, end_date=end_date))
+        
+    # දත්ත ලබා ගැනීම
+    cursor.execute("SELECT id, expense_date, category, description, amount FROM personal_expenses WHERE expense_date BETWEEN ? AND ? ORDER BY expense_date DESC, id DESC", (start_date, end_date))
+    expenses = cursor.fetchall()
+    
+    total_amount = sum([row[4] for row in expenses])
+    
+    # Chart එක සඳහා දත්ත (Category අනුව වියදම් වෙන් කිරීම)
+    cursor.execute("SELECT category, SUM(amount) FROM personal_expenses WHERE expense_date BETWEEN ? AND ? GROUP BY category", (start_date, end_date))
+    chart_data_raw = cursor.fetchall()
+    chart_labels = [row[0] for row in chart_data_raw]
+    chart_values = [row[1] for row in chart_data_raw]
+    
+    conn.close()
+    
+    return render_template('personal_expenses.html', expenses=expenses, total_amount=total_amount, 
+                           start_date=start_date, end_date=end_date, 
+                           chart_labels=chart_labels, chart_values=chart_values)
+
+@app.route('/delete_personal_expense/<int:exp_id>')
+def delete_personal_expense(exp_id):
+    if 'username' not in session or session.get('username') != 'madusanka_personal':
+        return redirect(url_for('login'))
+    conn = sqlite3.connect('/var/data/database.db')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM personal_expenses WHERE id=?", (exp_id,))
+    conn.commit()
+    conn.close()
+    return redirect(request.referrer or url_for('personal_expenses'))
 
 if __name__ == '__main__':
     app.run(debug=True)
