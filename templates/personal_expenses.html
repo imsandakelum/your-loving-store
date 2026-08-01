@@ -164,7 +164,7 @@
                     <div class="exp-amount">Rs. {{ "{:,.2f}".format(exp[4]) }}</div>
                     <a href="{{ url_for('delete_personal_expense', exp_id=exp[0]) }}" class="btn-delete" onclick="return confirm('මේක මකන්න අවශ්‍යද?');"><i class="fas fa-trash-alt"></i></a>
                 </div>
-                {% end endfor %}
+                {% endfor %}
             {% else %}
                 <p style="text-align: center; color: var(--text-muted); font-size: 14px;">No expenses recorded yet.</p>
             {% endif %}
