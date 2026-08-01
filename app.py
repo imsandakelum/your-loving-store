@@ -2483,11 +2483,14 @@ def personal_expenses():
         conn.commit()
         return redirect(url_for('personal_expenses', start_date=start_date, end_date=end_date))
         
-    # දත්ත ලබා ගැනීම
-    cursor.execute("SELECT id, expense_date, category, description, amount FROM personal_expenses WHERE expense_date BETWEEN ? AND ? ORDER BY expense_date DESC, id DESC", (start_date, end_date))
-    expenses = cursor.fetchall()
+    # 1. තෝරාගත් දින පරාසයේ සම්පූර්ණ වියදම වෙනම ගණනය කිරීම (Total එක වෙනස් නොවීම සඳහා)
+    cursor.execute("SELECT SUM(amount) FROM personal_expenses WHERE expense_date BETWEEN ? AND ?", (start_date, end_date))
+    total_row = cursor.fetchone()
+    total_amount = total_row[0] if total_row[0] else 0.0
     
-    total_amount = sum([row[4] for row in expenses])
+    # 2. Recent Transactions ලිස්ට් එකට අන්තිම 10 පමණක් ලබා ගැනීම (LIMIT 10)
+    cursor.execute("SELECT id, expense_date, category, description, amount FROM personal_expenses WHERE expense_date BETWEEN ? AND ? ORDER BY expense_date DESC, id DESC LIMIT 10", (start_date, end_date))
+    expenses = cursor.fetchall()
     
     # Chart එක සඳහා දත්ත (Category අනුව වියදම් වෙන් කිරීම)
     cursor.execute("SELECT category, SUM(amount) FROM personal_expenses WHERE expense_date BETWEEN ? AND ? GROUP BY category", (start_date, end_date))
