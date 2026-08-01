@@ -265,7 +265,12 @@ def deduct_fifo(cursor, item_id, sell_qty):
 
 @app.route('/')
 def home():
-    if 'username' in session: return redirect(url_for('dashboard'))
+    if 'username' in session: 
+        # අලුත් යූසර් නම් Personal පේජ් එකට යවනවා
+        if session.get('role') == 'personal_only':
+            return redirect(url_for('personal_expenses'))
+        # නැත්නම් සාමාන්‍ය Dashboard එකට යවනවා
+        return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -317,7 +322,15 @@ def login():
                 print("Telegram Alert Error:", e) 
                 
             conn.close()
-            return redirect(url_for('dashboard'))
+            # ... (උඩ තියෙන Telegram Alert කේතය එලෙසම තබන්න) ...
+            
+            conn.close()
+            
+            # 🎯 අලුත්: Role එක අනුව අදාල පේජ් එකට යැවීම
+            if session['role'] == 'personal_only':
+                return redirect(url_for('personal_expenses'))
+            else:
+                return redirect(url_for('dashboard'))
             
         conn.close()
         return render_template('login.html', error="Username හෝ Password වැරදියි!")
