@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Expenses Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --accent: #f72585;
+            --text-dark: #2b2d42;
+            --text-muted: #8d99ae;
+            --danger: #ef233c;
+            --success: #2ec4b6;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            color: var(--text-dark);
+        }
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 20px;
+            border-bottom-left-radius: 25px;
+            border-bottom-right-radius: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header h2 { margin: 0; font-size: 22px; display: flex; justify-content: space-between; align-items: center; }
+        .logout-btn { color: white; text-decoration: none; font-size: 14px; background: rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 20px; }
+        
+        .container { padding: 15px; padding-bottom: 80px; }
+        
+        .total-card {
+            background: linear-gradient(45deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 10px 20px rgba(255, 154, 158, 0.3);
+            margin-bottom: 20px;
+            color: var(--text-dark);
+        }
+        .total-card h3 { margin: 0; font-size: 16px; color: #555; }
+        .total-card h1 { margin: 10px 0 0 0; font-size: 32px; font-weight: bold; }
+
+        .form-card, .list-card, .chart-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 5px; font-weight: 600; }
+        .form-control {
+            width: 100%; padding: 12px; border: 1px solid #e0e0e0; border-radius: 12px;
+            font-size: 15px; box-sizing: border-box; background-color: #f9f9f9;
+        }
+        .form-control:focus { border-color: var(--primary); outline: none; background-color: #fff; }
+        
+        .btn-add {
+            width: 100%; background: var(--primary); color: white; border: none;
+            padding: 15px; border-radius: 12px; font-size: 16px; font-weight: bold;
+            box-shadow: 0 4px 10px rgba(67, 97, 238, 0.3); cursor: pointer;
+        }
+        
+        .expense-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 0; border-bottom: 1px solid #eee;
+        }
+        .expense-item:last-child { border-bottom: none; }
+        .exp-details { flex-grow: 1; }
+        .exp-cat { font-weight: bold; font-size: 15px; margin-bottom: 3px; }
+        .exp-date { font-size: 12px; color: var(--text-muted); }
+        .exp-desc { font-size: 13px; color: #666; margin-top: 3px; }
+        .exp-amount { font-weight: bold; font-size: 16px; color: var(--accent); margin-right: 15px; }
+        .btn-delete { color: var(--danger); font-size: 18px; text-decoration: none; padding: 5px; }
+
+        .date-filter { display: flex; gap: 10px; margin-bottom: 15px; }
+        .date-filter input { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid #ddd; }
+        .date-filter button { padding: 10px 15px; border-radius: 10px; background: var(--text-dark); color: white; border: none; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2><i class="fas fa-wallet"></i> My Expenses <a href="/logout" class="logout-btn">Logout</a></h2>
+    </div>
+
+    <div class="container">
+        
+        <!-- Total Expense Card -->
+        <div class="total-card">
+            <h3>Total Spent (Selected Period)</h3>
+            <h1>Rs. {{ "{:,.2f}".format(total_amount) }}</h1>
+        </div>
+
+        <!-- Add Expense Form -->
+        <div class="form-card">
+            <h4 style="margin-top:0; color:var(--primary);"><i class="fas fa-plus-circle"></i> Add New Expense</h4>
+            <form method="POST">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" name="expense_date" class="form-control" value="{{ today_date }}" required>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select name="category" class="form-control" required>
+                        <option value="Fast Food & Dining">Fast Food & Dining</option>
+                        <option value="Clothing & Grooming">Clothing & Grooming</option>
+                        <option value="Vehicle & Bike Maintenance">Vehicle & Bike Maintenance</option>
+                        <option value="Gadgets & Electronics">Gadgets & Electronics</option>
+                        <option value="Gym & Fitness">Gym & Fitness</option>
+                        <option value="Cricket Matches & Entertainment">Cricket Matches & Entertainment</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Amount (Rs.)</label>
+                    <input type="number" step="0.01" name="amount" class="form-control" placeholder="0.00" required>
+                </div>
+                <div class="form-group">
+                    <label>Description (Optional)</label>
+                    <input type="text" name="description" class="form-control" placeholder="e.g., Oil change, Dinner...">
+                </div>
+                <button type="submit" class="btn-add">Save Expense</button>
+            </form>
+        </div>
+
+        <!-- Date Filter & Chart -->
+        <div class="chart-card">
+            <h4 style="margin-top:0; color:var(--primary);"><i class="fas fa-chart-pie"></i> Expense Breakdown</h4>
+            <form method="GET" class="date-filter">
+                <input type="date" name="start_date" value="{{ start_date }}">
+                <input type="date" name="end_date" value="{{ end_date }}">
+                <button type="submit"><i class="fas fa-filter"></i></button>
+            </form>
+            
+            <canvas id="expenseChart" height="250"></canvas>
+        </div>
+
+        <!-- Expense History -->
+        <div class="list-card">
+            <h4 style="margin-top:0; color:var(--primary);"><i class="fas fa-history"></i> Recent Transactions</h4>
+            {% if expenses %}
+                {% for exp in expenses %}
+                <div class="expense-item">
+                    <div class="exp-details">
+                        <div class="exp-cat">{{ exp[2] }}</div>
+                        <div class="exp-date"><i class="far fa-calendar-alt"></i> {{ exp[1] }}</div>
+                        {% if exp[3] %}<div class="exp-desc">{{ exp[3] }}</div>{% endif %}
+                    </div>
+                    <div class="exp-amount">Rs. {{ "{:,.2f}".format(exp[4]) }}</div>
+                    <a href="{{ url_for('delete_personal_expense', exp_id=exp[0]) }}" class="btn-delete" onclick="return confirm('මේක මකන්න අවශ්‍යද?');"><i class="fas fa-trash-alt"></i></a>
+                </div>
+                {% end endfor %}
+            {% else %}
+                <p style="text-align: center; color: var(--text-muted); font-size: 14px;">No expenses recorded yet.</p>
+            {% endif %}
+        </div>
+
+    </div>
+
+    <script>
+        // Chart.js Configuration
+        const ctx = document.getElementById('expenseChart').getContext('2d');
+        const chartLabels = {{ chart_labels | tojson | safe }};
+        const chartValues = {{ chart_values | tojson | safe }};
+        
+        if(chartValues.length > 0) {
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        data: chartValues,
+                        backgroundColor: [
+                            '#4361ee', '#f72585', '#2ec4b6', '#ff9f1c', '#7209b7', '#3a0ca3', '#fca311'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, padding: 15, font: { size: 11 } } }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+    </script>
+</body>
+</html>
