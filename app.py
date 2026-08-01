@@ -2460,8 +2460,8 @@ def service_worker():
 
 @app.route('/personal', methods=['GET', 'POST'])
 def personal_expenses():
-    # 'madusanka_personal' කියන අලුත් යූසර්ට විතරක් මේකට එන්න පුළුවන්
-    if 'username' not in session or session.get('username') != 'madusanka_personal':
+    # 'personal_only' Role එක තියෙන කෙනාට විතරක් මේකට එන්න පුළුවන් විදිහට හැදුවා
+    if 'username' not in session or session.get('role') != 'personal_only':
         return "Access Denied! 🚫 මෙම පිටුව බැලීමට ඔබට අවසර නැත."
         
     conn = sqlite3.connect('/var/data/database.db')
@@ -2503,7 +2503,7 @@ def personal_expenses():
 
 @app.route('/delete_personal_expense/<int:exp_id>')
 def delete_personal_expense(exp_id):
-    if 'username' not in session or session.get('username') != 'madusanka_personal':
+    if 'username' not in session or session.get('role') != 'personal_only':
         return redirect(url_for('login'))
     conn = sqlite3.connect('/var/data/database.db')
     cursor = conn.cursor()
