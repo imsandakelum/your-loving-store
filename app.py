@@ -2515,5 +2515,72 @@ def delete_personal_expense(exp_id):
     conn.close()
     return redirect(request.referrer or url_for('personal_expenses'))
 
+# ==========================================
+# 🚀 LIVE CHAT & POPUP MESSAGE SYSTEM
+# ==========================================
+
+# 1. Chat සඳහා අලුත් Table එකක් සෑදීම
+def init_chat_db():
+    conn = sqlite3.connect('/var/data/database.db')
+    cursor = conn.cursor()
+    cursor.execute('''CREATE TABLE IF NOT EXISTS system_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sender TEXT,
+        receiver TEXT,
+        message TEXT,
+        status TEXT DEFAULT 'unread',
+        created_at DATETIME
+    )''')
+    conn.commit()
+    conn.close()
+
+init_chat_db()
+
+# 2. පණිවිඩයක් යැවීමේ API එක
+@app.route('/api/send_message', methods=['POST'])
+def api_send_message():
+    if 'username' not in session: return jsonify({'status': 'error'})
+    sender = session['username']
+    receiver = request.form.get('receiver')
+    message = request.form.get('message')
+    now = get_sl_today().strftime('%Y-%m-%d %H:%M:%S')
+
+    conn = sqlite3.connect('/var/data/database.db')
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO system_messages (sender, receiver, message, created_at) VALUES (?, ?, ?, ?)", (sender, receiver, message, now))
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'success'})
+
+# 3. අලුත් පණිවිඩ පරීක්ෂා කිරීමේ API එක (බ්‍රවුසර් එකෙන් තත්පර 5න් 5ට අමතයි)
+@app.route('/api/get_messages')
+def api_get_messages():
+    if 'username' not in session: return jsonify({})
+    receiver = session['username']
+    
+    conn = sqlite3.connect('/var/data/database.db')
+    cursor = conn.cursor()
+    # නොකියවූ පළමු පණිවිඩය පමණක් ගනී
+    cursor.execute("SELECT id, sender, message, created_at FROM system_messages WHERE receiver=? AND status='unread' ORDER BY id ASC LIMIT 1", (receiver,))
+    msg = cursor.fetchone()
+    conn.close()
+
+    if msg:
+        return jsonify({'id': msg[0], 'sender': msg[1], 'message': msg[2], 'time': msg[3]})
+    return jsonify({})
+
+# 4. පණිවිඩය කියවූ බව සලකුණු කිරීමේ API එක
+@app.route('/api/mark_read', methods=['POST'])
+def api_mark_read():
+    if 'username' not in session: return jsonify({'status': 'error'})
+    msg_id = request.form.get('msg_id')
+    
+    conn = sqlite3.connect('/var/data/database.db')
+    cursor = conn.cursor()
+    cursor.execute("UPDATE system_messages SET status='read' WHERE id=?", (msg_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'success'})
+
 if __name__ == '__main__':
     app.run(debug=True)
