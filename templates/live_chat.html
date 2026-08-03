@@ -1,18 +1,19 @@
-<!-- Live Chat & Popup System -->
+<!-- Live Chat & Popup System (Updated) -->
 <style>
-    /* Floating Chat Button */
+    /* 🎯 අලුත්: Floating Chat Button (Professional Look) */
     .chat-float-btn {
         position: fixed; bottom: 20px; right: 20px;
-        background: #f72585; color: white; width: 60px; height: 60px;
-        border-radius: 50%; display: flex; justify-content: center; align-items: center;
-        font-size: 24px; box-shadow: 0 4px 15px rgba(247, 37, 133, 0.4);
+        background: linear-gradient(135deg, #4361ee, #3f37c9); 
+        color: white; padding: 12px 25px;
+        border-radius: 30px; display: flex; justify-content: center; align-items: center; gap: 10px;
+        font-size: 16px; font-weight: bold; box-shadow: 0 4px 15px rgba(67, 97, 238, 0.4);
         cursor: pointer; z-index: 9998; transition: 0.3s; border: none;
     }
-    .chat-float-btn:hover { transform: scale(1.1); }
+    .chat-float-btn:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(67, 97, 238, 0.6); }
 
     /* Send Message Box */
     .chat-send-box {
-        position: fixed; bottom: 90px; right: 20px; width: 300px;
+        position: fixed; bottom: 80px; right: 20px; width: 300px;
         background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
         z-index: 9999; display: none; overflow: hidden; border: 1px solid #ddd;
     }
@@ -21,7 +22,7 @@
     .chat-popup-box {
         position: fixed; top: 20px; right: 20px; width: 320px;
         background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        z-index: 10000; display: none; overflow: hidden; border-left: 5px solid #4361ee;
+        z-index: 10000; display: none; overflow: hidden; border-left: 5px solid #f72585;
         animation: slideIn 0.5s ease-out;
     }
     
@@ -43,13 +44,15 @@
     .chat-btn:hover { background: #3f37c9; }
 </style>
 
-<!-- 1. Floating Button (To open Send Message Box) -->
-<button class="chat-float-btn" onclick="toggleSendBox()"><i class="fas fa-comment-dots"></i></button>
+<!-- 1. Floating Button (Updated) -->
+<button class="chat-float-btn" onclick="toggleSendBox()">
+    <i class="fas fa-comment-dots" style="font-size: 20px;"></i> Chat
+</button>
 
 <!-- 2. Send Message Box -->
 <div id="chatSendBox" class="chat-send-box">
     <div class="chat-header">
-        <span><i class="fas fa-paper-plane" style="color: #f72585;"></i> Send Message</span>
+        <span><i class="fas fa-paper-plane" style="color: #4361ee;"></i> Send Message</span>
         <i class="fas fa-times" style="cursor:pointer; color:#888;" onclick="toggleSendBox()"></i>
     </div>
     <div class="chat-body" style="padding-bottom: 5px;">
@@ -66,10 +69,10 @@
     </div>
 </div>
 
-<!-- 3. Incoming Message Popup (Live Alert) -->
+<!-- 3. Incoming Message Popup -->
 <div id="chatPopupBox" class="chat-popup-box">
-    <div class="chat-header" style="background: #4361ee; color: white;">
-        <span><i class="fas fa-bell"></i> Message from <b id="incomingSender">Admin</b></span>
+    <div class="chat-header" style="background: #2b2d42; color: white;">
+        <span><i class="fas fa-bell" style="color: #f72585;"></i> Message from <b id="incomingSender">Admin</b></span>
         <i class="fas fa-times" style="cursor:pointer;" onclick="closePopup()"></i>
     </div>
     <div class="chat-body" id="incomingContent">
@@ -83,6 +86,8 @@
 </div>
 
 <script>
+    let autoCloseTimer; // 🎯 Timer එක මතක තියාගන්න Variable එක
+
     // --- Box Toggles ---
     function toggleSendBox() {
         let box = document.getElementById('chatSendBox');
@@ -99,6 +104,7 @@
         }).then(() => {
             document.getElementById('chatPopupBox').style.display = 'none';
             document.getElementById('replyText').value = '';
+            clearTimeout(autoCloseTimer); // Close කරාම Timer එක අයින් කරනවා
         });
     }
 
@@ -115,7 +121,7 @@
         }).then(() => {
             document.getElementById('chatMsgText').value = '';
             toggleSendBox();
-            alert("Message sent successfully!");
+            // පොඩි Alert එකක් වෙනුවට ලස්සනට සේව් වුණා කියලා පෙන්නන්න පුළුවන්
         });
     }
 
@@ -125,13 +131,11 @@
         let sender = document.getElementById('incomingSender').innerText;
         if(!reply) return;
         
-        // 1. මුලින්ම ආපු මැසේජ් එක Read කරනවා
         fetch('/api/mark_read', {
             method: 'POST',
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
             body: 'msg_id=' + id
         }).then(() => {
-            // 2. ඊට පස්සේ Reply එක යවනවා
             fetch('/api/send_message', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -139,12 +143,17 @@
             }).then(() => {
                 document.getElementById('chatPopupBox').style.display = 'none';
                 document.getElementById('replyText').value = '';
-                alert("Reply sent!");
+                clearTimeout(autoCloseTimer);
             });
         });
     }
 
-    // --- Auto Polling (Checking for messages every 5 seconds) ---
+    // 🎯 රිප්ලයි කරන්න Click කරපු ගමන් Auto-close එක නවතිනවා
+    document.getElementById('replyText').addEventListener('focus', () => {
+        clearTimeout(autoCloseTimer);
+    });
+
+    // --- Auto Polling ---
     function checkMessages() {
         fetch('/api/get_messages')
         .then(response => response.json())
@@ -157,13 +166,18 @@
                 let popup = document.getElementById('chatPopupBox');
                 if (popup.style.display !== 'block') {
                     popup.style.display = 'block';
-                    // පොඩි බීප් සද්දයක් ප්ලේ වෙනවා අවධානය ගන්න
                     let audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
                     audio.play().catch(e => {});
+
+                    // 🎯 තත්පර 10කින් ඔටෝ Close වෙන්න Timer එක දානවා
+                    clearTimeout(autoCloseTimer);
+                    autoCloseTimer = setTimeout(() => {
+                        closePopup();
+                    }, 10000); // 10000 ms = 10 Seconds
                 }
             }
         }).catch(err => console.log(err));
     }
 
-    setInterval(checkMessages, 5000); // තත්පර 5න් 5ට චෙක් කරයි
+    setInterval(checkMessages, 5000);
 </script>
