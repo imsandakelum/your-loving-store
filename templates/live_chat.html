@@ -1,0 +1,169 @@
+<!-- Live Chat & Popup System -->
+<style>
+    /* Floating Chat Button */
+    .chat-float-btn {
+        position: fixed; bottom: 20px; right: 20px;
+        background: #f72585; color: white; width: 60px; height: 60px;
+        border-radius: 50%; display: flex; justify-content: center; align-items: center;
+        font-size: 24px; box-shadow: 0 4px 15px rgba(247, 37, 133, 0.4);
+        cursor: pointer; z-index: 9998; transition: 0.3s; border: none;
+    }
+    .chat-float-btn:hover { transform: scale(1.1); }
+
+    /* Send Message Box */
+    .chat-send-box {
+        position: fixed; bottom: 90px; right: 20px; width: 300px;
+        background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        z-index: 9999; display: none; overflow: hidden; border: 1px solid #ddd;
+    }
+
+    /* Incoming Message Popup */
+    .chat-popup-box {
+        position: fixed; top: 20px; right: 20px; width: 320px;
+        background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        z-index: 10000; display: none; overflow: hidden; border-left: 5px solid #4361ee;
+        animation: slideIn 0.5s ease-out;
+    }
+    
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+
+    .chat-header {
+        background: #f8f9fa; padding: 12px 15px; font-weight: bold; color: #333;
+        display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee;
+    }
+    .chat-body { padding: 15px; font-size: 15px; color: #444; }
+    .chat-footer { padding: 10px 15px; background: #f8f9fa; display: flex; gap: 8px; border-top: 1px solid #eee; }
+    
+    .chat-input { flex: 1; padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+    .chat-input:focus { outline: none; border-color: #4361ee; }
+    .chat-btn { background: #4361ee; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    .chat-btn:hover { background: #3f37c9; }
+</style>
+
+<!-- 1. Floating Button (To open Send Message Box) -->
+<button class="chat-float-btn" onclick="toggleSendBox()"><i class="fas fa-comment-dots"></i></button>
+
+<!-- 2. Send Message Box -->
+<div id="chatSendBox" class="chat-send-box">
+    <div class="chat-header">
+        <span><i class="fas fa-paper-plane" style="color: #f72585;"></i> Send Message</span>
+        <i class="fas fa-times" style="cursor:pointer; color:#888;" onclick="toggleSendBox()"></i>
+    </div>
+    <div class="chat-body" style="padding-bottom: 5px;">
+        <label style="font-size: 12px; font-weight: bold; color: #666;">Select User:</label>
+        <select id="chatReceiver" class="chat-input" style="width: 100%; margin-bottom: 10px;">
+            <option value="user2">Staff (User 2)</option>
+            <option value="admin">Admin</option>
+        </select>
+        <label style="font-size: 12px; font-weight: bold; color: #666;">Message:</label>
+        <textarea id="chatMsgText" class="chat-input" style="width: 100%; height: 60px; resize: none;" placeholder="Type your message..."></textarea>
+    </div>
+    <div class="chat-footer">
+        <button class="chat-btn" style="width: 100%;" onclick="sendNewMessage()">Send Message</button>
+    </div>
+</div>
+
+<!-- 3. Incoming Message Popup (Live Alert) -->
+<div id="chatPopupBox" class="chat-popup-box">
+    <div class="chat-header" style="background: #4361ee; color: white;">
+        <span><i class="fas fa-bell"></i> Message from <b id="incomingSender">Admin</b></span>
+        <i class="fas fa-times" style="cursor:pointer;" onclick="closePopup()"></i>
+    </div>
+    <div class="chat-body" id="incomingContent">
+        ...
+    </div>
+    <div class="chat-footer">
+        <input type="hidden" id="incomingMsgId">
+        <input type="text" id="replyText" class="chat-input" placeholder="Type reply here...">
+        <button class="chat-btn" onclick="sendReply()">Reply</button>
+    </div>
+</div>
+
+<script>
+    // --- Box Toggles ---
+    function toggleSendBox() {
+        let box = document.getElementById('chatSendBox');
+        box.style.display = (box.style.display === 'block') ? 'none' : 'block';
+    }
+
+    function closePopup() {
+        let id = document.getElementById('incomingMsgId').value;
+        // Mark as read when closed
+        fetch('/api/mark_read', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'msg_id=' + id
+        }).then(() => {
+            document.getElementById('chatPopupBox').style.display = 'none';
+            document.getElementById('replyText').value = '';
+        });
+    }
+
+    // --- Sending Messages ---
+    function sendNewMessage() {
+        let rec = document.getElementById('chatReceiver').value;
+        let msg = document.getElementById('chatMsgText').value;
+        if(!msg) return alert("Please type a message!");
+
+        fetch('/api/send_message', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'receiver=' + rec + '&message=' + encodeURIComponent(msg)
+        }).then(() => {
+            document.getElementById('chatMsgText').value = '';
+            toggleSendBox();
+            alert("Message sent successfully!");
+        });
+    }
+
+    function sendReply() {
+        let id = document.getElementById('incomingMsgId').value;
+        let reply = document.getElementById('replyText').value;
+        let sender = document.getElementById('incomingSender').innerText;
+        if(!reply) return;
+        
+        // 1. මුලින්ම ආපු මැසේජ් එක Read කරනවා
+        fetch('/api/mark_read', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'msg_id=' + id
+        }).then(() => {
+            // 2. ඊට පස්සේ Reply එක යවනවා
+            fetch('/api/send_message', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'receiver=' + sender + '&message=' + encodeURIComponent(reply)
+            }).then(() => {
+                document.getElementById('chatPopupBox').style.display = 'none';
+                document.getElementById('replyText').value = '';
+                alert("Reply sent!");
+            });
+        });
+    }
+
+    // --- Auto Polling (Checking for messages every 5 seconds) ---
+    function checkMessages() {
+        fetch('/api/get_messages')
+        .then(response => response.json())
+        .then(data => {
+            if(data.id) {
+                document.getElementById('incomingMsgId').value = data.id;
+                document.getElementById('incomingSender').innerText = data.sender;
+                document.getElementById('incomingContent').innerText = data.message;
+                
+                let popup = document.getElementById('chatPopupBox');
+                if (popup.style.display !== 'block') {
+                    popup.style.display = 'block';
+                    // පොඩි බීප් සද්දයක් ප්ලේ වෙනවා අවධානය ගන්න
+                    let audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+                    audio.play().catch(e => {});
+                }
+            }
+        }).catch(err => console.log(err));
+    }
+
+    setInterval(checkMessages, 5000); // තත්පර 5න් 5ට චෙක් කරයි
+</script>
