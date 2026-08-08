@@ -2011,6 +2011,36 @@ def delete_lead(lead_id):
     
     return redirect(url_for('leads', start_date=start_date, end_date=end_date, product_name=product_filters, status=status_filters))              
 
+# --- Admin සඳහා පමණක් Leads කිහිපයක් එකවර මකා දැමීම (Bulk Delete) ---
+@app.route('/bulk_delete_leads', methods=['POST'])
+def bulk_delete_leads():
+    if 'username' not in session: return redirect(url_for('login'))
+    if session.get('role') != 'admin': return "Access Denied! ඔබට මෙම පහසුකම භාවිතා කළ නොහැක."
+    
+    selected_ids = request.form.getlist('selected_leads')
+    
+    # දැනට තියෙන Filters මතක තබා ගැනීමට
+    start_date = request.form.get('current_start_date')
+    end_date = request.form.get('current_end_date')
+    product_filters = request.form.getlist('current_product_filter')
+    status_filters = request.form.getlist('current_status_filter')
+
+    if selected_ids:
+        conn = sqlite3.connect('/var/data/database.db')
+        cursor = conn.cursor()
+        # තෝරාගත් සියලුම IDs එකවර මකා දැමීම
+        placeholders = ','.join('?' for _ in selected_ids)
+        cursor.execute(f"DELETE FROM leads WHERE id IN ({placeholders})", selected_ids)
+        conn.commit()
+        conn.close()
+    
+    # මකා දැමුවට පසු නැවතත් කලින් හිටපු ෆිල්ටර් එකටම යැවීම
+    url = url_for('leads', start_date=start_date, end_date=end_date)
+    for p in product_filters: url += f"&product_name={p}"
+    for s in status_filters: url += f"&status={s}"
+    
+    return redirect(url)
+
 # ==========================================
 # Print Bills Section (Postal & Courier)
 # ==========================================
