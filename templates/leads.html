@@ -130,11 +130,26 @@
 </div>
 
 <div class="card p-4 shadow-sm border-0" style="border-radius: 15px;">
+    <!-- 🎯 Bulk Delete Button (Admin Only) -->
+    {% if session.get('role') == 'admin' %}
+    <div class="d-flex justify-content-end mb-2">
+        <button type="button" class="btn btn-danger fw-bold shadow-sm" onclick="submitBulkDelete()">
+            <i class="bi bi-trash-fill"></i> Delete Selected Leads
+        </button>
+    </div>
+    {% endif %}
+    
     <div class="table-responsive">
         <table class="table table-bordered table-sm align-middle text-center" style="font-size: 0.9rem;">
             <thead class="table-dark">
                 <tr>
-                    <th>#</th>
+                    <!-- 🎯 Select All Checkbox -->
+                    <th>
+                        {% if session.get('role') == 'admin' %}
+                        <input type="checkbox" id="selectAll" class="form-check-input shadow-sm border-dark me-2" style="cursor: pointer;" onclick="toggleSelectAll()">
+                        {% endif %}
+                        #
+                    </th>
                     <th>Date/Time</th>
                     <th>Product & Size</th>
                     <th class="text-start">Customer Details</th>
@@ -159,7 +174,14 @@
                     {% endif %}
                 " style="transition: 0.3s;">
                     
-                    <td class="fw-bold text-muted"><span class="badge bg-secondary">{{ loop.index }}</span></td>
+                    <!-- 🎯 Row Checkbox -->
+                    <td class="fw-bold text-muted">
+                        {% if session.get('role') == 'admin' %}
+                        <input type="checkbox" value="{{ lead[0] }}" class="form-check-input shadow-sm border-dark lead-checkbox me-2" style="cursor: pointer;">
+                        {% endif %}
+                        <span class="badge bg-secondary">{{ loop.index }}</span>
+                    </td>
+                    
                     <td class="small fw-bold">{{ lead[1] }}<br><span class="text-muted" style="font-size: 0.75rem;">{{ lead[2] }}</span></td>
                     <td class="fw-bold text-primary">{{ lead[3] }}<br><span class="badge bg-secondary">{{ lead[8] if lead[8] else '-' }}</span></td>
                     <td class="text-start fw-bold">{{ lead[4] }}<br><span class="text-muted small fw-normal">{{ lead[7] }}</span></td>
@@ -261,6 +283,19 @@
     </div>
 </div>
 
+<!-- 🎯 Hidden Bulk Delete Form -->
+<form id="hiddenBulkDeleteForm" action="/bulk_delete_leads" method="POST" style="display: none;">
+    <input type="hidden" name="current_start_date" value="{{ start_date }}">
+    <input type="hidden" name="current_end_date" value="{{ end_date }}">
+    {% for p in product_filters %}
+    <input type="hidden" name="current_product_filter" value="{{ p }}">
+    {% endfor %}
+    {% for s in status_filters %}
+    <input type="hidden" name="current_status_filter" value="{{ s }}">
+    {% endfor %}
+    <!-- තෝරාගත් Leads වල අංක Javascript මගින් මෙතැනට ඇතුලත් කරයි -->
+</form>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 <script>
@@ -294,41 +329,76 @@
     });
 
     // 🎯 අලුත්: Donut Chart එක සෑදීම
-        const ctx = document.getElementById('confirmChart').getContext('2d');
-        const confirmData = {{ confirmed_count }};
-        const otherData = {{ other_count }};
-        
-        // ඩේටා නැත්නම් (Leads 0 නම්) අළු පාටට පෙන්වන්න
-        const chartData = (confirmData === 0 && otherData === 0) ? [0, 1] : [confirmData, otherData];
-        const bgColors = (confirmData === 0 && otherData === 0) ? ['#e2e8f0', '#e2e8f0'] : ['#5BD267', '#f1f5f9'];
+    const ctx = document.getElementById('confirmChart').getContext('2d');
+    const confirmData = {{ confirmed_count }};
+    const otherData = {{ other_count }};
+    
+    // ඩේටා නැත්නම් (Leads 0 නම්) අළු පාටට පෙන්වන්න
+    const chartData = (confirmData === 0 && otherData === 0) ? [0, 1] : [confirmData, otherData];
+    const bgColors = (confirmData === 0 && otherData === 0) ? ['#e2e8f0', '#e2e8f0'] : ['#5BD267', '#f1f5f9'];
 
-        new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Confirmed', 'Other (Pending/Cancel/etc)'],
-                datasets: [{
-                    data: chartData,
-                    backgroundColor: bgColors,
-                    borderWidth: 0,
-                    hoverOffset: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '75%', // Donut එකේ මැද හිඩැස (පොඩි වළල්ලක් වගේ පේන්න)
-                plugins: {
-                    legend: { display: false },
-                    tooltip: { 
-                        enabled: (confirmData !== 0 || otherData !== 0), // ඩේටා නැත්නම් ටූල්ටිප් එක නොපෙන්වයි
-                        callbacks: {
-                            label: function(context) {
-                                return ' ' + context.label + ': ' + context.raw;
-                            }
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Confirmed', 'Other (Pending/Cancel/etc)'],
+            datasets: [{
+                data: chartData,
+                backgroundColor: bgColors,
+                borderWidth: 0,
+                hoverOffset: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '75%', // Donut එකේ මැද හිඩැස (පොඩි වළල්ලක් වගේ පේන්න)
+            plugins: {
+                legend: { display: false },
+                tooltip: { 
+                    enabled: (confirmData !== 0 || otherData !== 0), // ඩේටා නැත්නම් ටූල්ටිප් එක නොපෙන්වයි
+                    callbacks: {
+                        label: function(context) {
+                            return ' ' + context.label + ': ' + context.raw;
                         }
                     }
                 }
             }
-        });
+        }
+    });
+
+    // 🎯 Bulk Delete Javascript Functions
+    // 1. Select All Checkbox එකේ වැඩේ
+    function toggleSelectAll() {
+        let selectAllCb = document.getElementById('selectAll');
+        let checkboxes = document.querySelectorAll('.lead-checkbox');
+        checkboxes.forEach(cb => cb.checked = selectAllCb.checked);
+    }
+
+    // 2. Delete Button එක එබුවම වෙන දේ
+    function submitBulkDelete() {
+        let checkedBoxes = document.querySelectorAll('.lead-checkbox:checked');
+        
+        if (checkedBoxes.length === 0) {
+            alert('කරුණාකර මකා දැමීමට අවශ්‍ය Orders තෝරන්න!');
+            return;
+        }
+        
+        // අහලා බලනවා ඇත්තටම මකන්නද කියලා
+        if (confirm(`ඔබට විශ්වාසද? තෝරාගත් Orders ${checkedBoxes.length} ම සම්පූර්ණයෙන්ම මැකී යනු ඇත. මෙය නැවත ආපසු හැරවිය නොහැක!`)) {
+            let form = document.getElementById('hiddenBulkDeleteForm');
+            
+            // තෝරගත්තු හැම එකටම Hidden input එකක් හදලා ෆෝම් එකට දානවා
+            checkedBoxes.forEach(function(cb) {
+                let input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'selected_leads';
+                input.value = cb.value;
+                form.appendChild(input);
+            });
+            
+            // ඔක්කොම දැම්මට පස්සේ Form එක Submit කරනවා
+            form.submit();
+        }
+    }
 </script>
 {% endblock %}
